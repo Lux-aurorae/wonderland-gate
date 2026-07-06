@@ -11,6 +11,11 @@ function pickrandomnum(){
 
 function play(){
   let uservalue = userInput.value;
-  console.log(uservalue);
+  if(uservalue < computernum){
+    console.log("UP")
+  }esel if(uservalue > computernum){
+    console.log("DOWN!!")
+  }else{console.log("맞추셨습니다")}
 
+}
 pickrandomnum();
