@@ -1,6 +1,7 @@
 let computernum = 0;
 let playButton = document.getElementById("play-button");
 let userInput = document.getElementById("user-input");
+let result = document.getElementById("result-area");
 
 playbutton.addeventlistener("click",play);
 
@@ -12,10 +13,12 @@ function pickrandomnum(){
 function play(){
   let uservalue = userInput.value;
   if(uservalue < computernum){
-    console.log("UP")
-  }esel if(uservalue > computernum){
-    console.log("DOWN!!")
-  }else{console.log("맞추셨습니다")}
+    resultarea.textcontent = "UP!!";
+  }else if(uservalue > computernum){
+    resultarea.textcontent = "DOWN!!";
+  }else{
+    resultarea.textcontent = "맞추셨습니다!";
+  }
 
 }
 pickrandomnum();
