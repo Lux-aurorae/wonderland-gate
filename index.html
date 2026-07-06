@@ -1,16 +1,350 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel=""stylesheet" href =  "style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🐇 이상한 나라의 숫자 맞추기</title>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Nanum+Pen+Script&display=swap" rel="stylesheet">
+  <style>
+    /* ============================================
+       🎩 이상한 나라 테마 - 색상 변수 정의
+       :root 에 변수를 만들어두면 아래에서 var(--이름) 으로 재사용
+       ============================================ */
+    :root {
+      --night-purple: #2b1b4d;     /* 깊은 밤 보라 (배경) */
+      --deep-teal: #123c3c;        /* 어두운 청록 */
+      --card-red: #c9184a;         /* 트럼프 하트 빨강 */
+      --gold: #e8b737;             /* 회중시계 금색 */
+      --cheshire-pink: #ff6fa5;    /* 체셔 고양이 핑크 */
+      --cream: #fdf6e3;            /* 카드 종이색 */
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Gowun Batang', serif;
+      /* 보라→청록으로 흐르는 이상한 나라의 밤하늘 */
+      background: radial-gradient(ellipse at top, #4a2b7a 0%, var(--night-purple) 45%, var(--deep-teal) 100%);
+      color: var(--cream);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;              /* 떠다니는 장식이 화면 밖으로 나가도 스크롤 안 생기게 */
+      position: relative;
+    }
+
+    /* ============================================
+       ✨ 배경에 둥둥 떠다니는 장식들 (카드, 시계, 버섯)
+       ============================================ */
+    .floating {
+      position: absolute;
+      font-size: 28px;
+      opacity: 0.35;
+      animation: floatAround 14s ease-in-out infinite;
+      pointer-events: none;          /* 클릭 방해하지 않게 */
+    }
+    /* nth-child 로 각 장식마다 위치·속도를 다르게 */
+    .floating:nth-child(1) { top: 8%;  left: 6%;  animation-duration: 16s; }
+    .floating:nth-child(2) { top: 70%; left: 10%; animation-duration: 13s; animation-delay: -4s; }
+    .floating:nth-child(3) { top: 15%; left: 85%; animation-duration: 18s; animation-delay: -7s; }
+    .floating:nth-child(4) { top: 78%; left: 82%; animation-duration: 12s; animation-delay: -2s; }
+    .floating:nth-child(5) { top: 45%; left: 92%; animation-duration: 15s; animation-delay: -9s; }
+    .floating:nth-child(6) { top: 40%; left: 3%;  animation-duration: 17s; animation-delay: -5s; }
+
+    @keyframes floatAround {
+      0%, 100% { transform: translateY(0) rotate(-8deg); }
+      50%      { transform: translateY(-30px) rotate(10deg); }
+    }
+
+    /* ============================================
+       🃏 게임 카드 (본체)
+       ============================================ */
+    .game-box {
+      background: linear-gradient(160deg, #3a2566 0%, #2b1b4d 100%);
+      border: 3px solid var(--gold);
+      border-radius: 20px;
+      padding: 36px 30px 30px;
+      width: 380px;
+      text-align: center;
+      box-shadow: 0 0 40px rgba(232, 183, 55, 0.25), 0 20px 50px rgba(0,0,0,0.55);
+      position: relative;
+      z-index: 2;
+    }
+
+    /* 카드 네 귀퉁이의 트럼프 문양 */
+    .corner { position: absolute; font-size: 18px; color: var(--card-red); opacity: 0.85; }
+    .corner.tl { top: 10px; left: 14px; }
+    .corner.tr { top: 10px; right: 14px; }
+    .corner.bl { bottom: 10px; left: 14px; transform: rotate(180deg); }
+    .corner.br { bottom: 10px; right: 14px; transform: rotate(180deg); }
+
+    h1 {
+      font-size: 24px;
+      color: var(--gold);
+      margin-bottom: 4px;
+      text-shadow: 0 0 14px rgba(232,183,55,0.5);
+    }
+
+    .sub {
+      font-size: 13px;
+      color: #b9a8e0;
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    /* ============================================
+       🐇 흰 토끼 무대! (이 게임의 주인공)
+       평소엔 굴 속에 숨어있다가, GO를 누르면 튀어나옴
+       ============================================ */
+    .rabbit-stage {
+      height: 150px;
+      position: relative;
+      margin-bottom: 8px;
+      overflow: hidden;              /* 토끼가 '굴 아래'에 숨을 수 있게 잘라줌 */
+    }
+
+    /* 토끼굴 (무대 바닥의 검은 타원) */
+    .rabbit-hole {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 150px;
+      height: 26px;
+      background: radial-gradient(ellipse, #000 30%, #1a0f33 100%);
+      border-radius: 50%;
+      box-shadow: inset 0 4px 10px rgba(0,0,0,0.9);
+    }
+
+    /* 토끼 본체 - 평소엔 굴 아래(translateY 120%)에 숨어 있음 */
+    #rabbit {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translate(-50%, 120%);   /* 숨은 상태 */
+      font-size: 64px;
+      transition: transform 0.1s;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,0.5));
+    }
+
+    /* 토끼의 말풍선 */
+    #speech {
+      position: absolute;
+      top: 4px;
+      left: 50%;
+      transform: translateX(-50%) scale(0);  /* 평소엔 크기 0 = 안 보임 */
+      background: var(--cream);
+      color: var(--night-purple);
+      font-family: 'Nanum Pen Script', cursive;
+      font-size: 26px;
+      font-weight: bold;
+      padding: 6px 18px;
+      border-radius: 18px;
+      white-space: nowrap;
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    /* 말풍선 꼬리 */
+    #speech::after {
+      content: "";
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      transform: translateX(-50%);
+      border: 9px solid transparent;
+      border-top-color: var(--cream);
+      border-bottom: 0;
+    }
+
+    /* --- JS가 붙였다 떼는 애니메이션 클래스들 --- */
+
+    /* UP! : 토끼가 굴에서 폴짝 뛰어오름 */
+    #rabbit.jump-up { animation: jumpUp 1.6s ease forwards; }
+    @keyframes jumpUp {
+      0%   { transform: translate(-50%, 120%); }
+      25%  { transform: translate(-50%, -34%) rotate(-6deg); }  /* 높이 점프! */
+      40%  { transform: translate(-50%, -14%) rotate(4deg); }
+      55%  { transform: translate(-50%, -26%) rotate(-3deg); }
+      80%  { transform: translate(-50%, -18%); }
+      100% { transform: translate(-50%, 120%); }                /* 다시 굴 속으로 */
+    }
+
+    /* DOWN! : 토끼가 빼꼼 나왔다가 아래를 가리키듯 쑥 꺼짐 */
+    #rabbit.dive-down { animation: diveDown 1.6s ease forwards; }
+    @keyframes diveDown {
+      0%   { transform: translate(-50%, 120%); }
+      25%  { transform: translate(-50%, -8%); }
+      55%  { transform: translate(-50%, 6%) rotate(8deg); }
+      75%  { transform: translate(-50%, 60%) rotate(16deg); }   /* 굴로 다이빙 */
+      100% { transform: translate(-50%, 130%); }
+    }
+
+    /* 정답! : 토끼가 나와서 신나게 춤 */
+    #rabbit.party { animation: partyJump 2.6s ease forwards; }
+    @keyframes partyJump {
+      0%   { transform: translate(-50%, 120%); }
+      15%  { transform: translate(-50%, -30%) rotate(0deg); }
+      30%  { transform: translate(-50%, -10%) rotate(-14deg); }
+      45%  { transform: translate(-50%, -30%) rotate(14deg); }
+      60%  { transform: translate(-50%, -10%) rotate(-14deg); }
+      75%  { transform: translate(-50%, -30%) rotate(14deg); }
+      100% { transform: translate(-50%, -16%) rotate(0deg); }   /* 무대에 남아서 인사 */
+    }
+
+    /* 말풍선 보이기 */
+    #speech.show { transform: translateX(-50%) scale(1); }
+
+    /* ============================================
+       ⏱️ 남은 기회 = 회중시계
+       ============================================ */
+    #chance-area {
+      font-size: 14px;
+      color: #b9a8e0;
+      margin-bottom: 18px;
+    }
+    #clocks { font-size: 20px; letter-spacing: 4px; }
+
+    /* ============================================
+       🧪 입력창 (DRINK ME 물약 느낌) + 버튼
+       ============================================ */
+    .input-row { display: flex; gap: 8px; margin-bottom: 12px; }
+
+    #user-input {
+      flex: 1;
+      padding: 12px;
+      font-size: 17px;
+      font-family: 'Gowun Batang', serif;
+      border: 2px solid var(--gold);
+      border-radius: 10px;
+      background: rgba(253, 246, 227, 0.08);
+      color: var(--cream);
+      text-align: center;
+    }
+    #user-input::placeholder { color: #8f7fc0; font-size: 13px; }
+    #user-input:focus { outline: 2px solid var(--cheshire-pink); }
+
+    button {
+      padding: 12px 20px;
+      font-size: 15px;
+      font-weight: bold;
+      font-family: 'Gowun Batang', serif;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: transform 0.08s, box-shadow 0.2s;
+    }
+    button:active { transform: scale(0.95); }
+    button:disabled {
+      background: #4a3d6e !important;
+      color: #7d6fa8 !important;
+      cursor: not-allowed;
+      box-shadow: none !important;
+    }
+
+    #play-button {
+      background: linear-gradient(135deg, var(--gold), #f5d576);
+      color: var(--night-purple);
+      box-shadow: 0 0 16px rgba(232,183,55,0.45);
+    }
+    #reset-button {
+      background: transparent;
+      color: #b9a8e0;
+      border: 2px solid #5b4790;
+      width: 100%;
+    }
+
+    /* ============================================
+       🃏 입력 기록 = 작은 트럼프 카드들
+       ============================================ */
+    #history-area {
+      margin-top: 16px;
+      min-height: 46px;
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .mini-card {
+      background: var(--cream);
+      color: var(--card-red);
+      font-weight: bold;
+      font-size: 14px;
+      width: 32px;
+      height: 44px;
+      border-radius: 5px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.4);
+      animation: dealCard 0.4s ease;           /* 카드가 촤락 나눠지는 효과 */
+    }
+    .mini-card span { font-size: 10px; }
+    @keyframes dealCard {
+      from { transform: translateY(-24px) rotate(-14deg); opacity: 0; }
+      to   { transform: translateY(0) rotate(0); opacity: 1; }
+    }
+
+    /* ============================================
+       🎊 정답 축하 - 하트/카드 비 내리기
+       ============================================ */
+    .confetti {
+      position: fixed;
+      top: -40px;
+      font-size: 24px;
+      animation: fall linear forwards;
+      pointer-events: none;
+      z-index: 10;
+    }
+    @keyframes fall {
+      to { transform: translateY(110vh) rotate(720deg); opacity: 0.2; }
+    }
+  </style>
 </head>
 <body>
-    <h1> 숫자 맞추기 게임!</h1>
-    <div>결과가 나온다</div>
-    <input type="number" id="user-input"/>
-    <button id="play-button">Go!</button>
-    <script src=""main.js"> </script>
+
+  <!-- 배경에 떠다니는 이상한 나라 장식들 -->
+  <div class="floating">🃏</div>
+  <div class="floating">⏱️</div>
+  <div class="floating">🍄</div>
+  <div class="floating">🎩</div>
+  <div class="floating">🗝️</div>
+  <div class="floating">🌹</div>
+
+  <div class="game-box">
+    <!-- 트럼프 카드 네 귀퉁이 문양 -->
+    <span class="corner tl">♥</span>
+    <span class="corner tr">♠</span>
+    <span class="corner bl">♦</span>
+    <span class="corner br">♣</span>
+
+    <h1>🎩 이상한 나라의 숫자 맞추기</h1>
+    <p class="sub">"늦었어, 늦었어! 5번 안에 1~100 사이 숫자를 맞춰야 해!"</p>
+
+    <!-- 🐇 토끼 무대: 말풍선 + 토끼 + 토끼굴 -->
+    <div class="rabbit-stage">
+      <div id="speech">과연 몇 일까?</div>
+      <div id="rabbit">🐇</div>
+      <div class="rabbit-hole"></div>
+    </div>
+
+    <!-- 남은 기회 = 회중시계 5개 -->
+    <div id="chance-area">
+      남은 시간 <span id="clocks">⏱️⏱️⏱️⏱️⏱️</span>
+    </div>
+
+    <!-- 입력창 + GO -->
+    <div class="input-row">
+      <input type="number" id="user-input" placeholder="DRINK ME... 아니, 숫자를!" />
+      <button id="play-button">GO!</button>
+    </div>
+
+    <button id="reset-button">🗝️ 처음으로 (Reset)</button>
+
+    <!-- 부른 숫자들이 트럼프 카드로 쌓임 -->
+    <div id="history-area"></div>
+  </div>
+
+  <script src="alice.js"></script>
 </body>
 </html>
