@@ -6,10 +6,11 @@ let userinput = document.getElementById(
 playbutton.addeventlistener("click",play);
 
 function pickrandomnum(){
-    computernum = Math.floor(Math.random())*100+1;
-    console.log("정답",computernum);
+    computernum = Math.floor(Math.random()*100+1);
+    console.log("정답",computerNum);
 
 }
+pick
 
 function paly() {
     let uservalue = userinput.ariaValueMax;
